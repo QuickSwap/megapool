@@ -1,6 +1,8 @@
 
 /* global ethers task */
 require('@nomiclabs/hardhat-waffle')
+require('hardhat-contract-sizer')
+require('dotenv').config()
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -19,5 +21,18 @@ task('accounts', 'Prints the list of accounts', async () => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: '0.8.7'
+  networks: {
+    hardhat: {
+      forking: {
+        url: process.env.ARCHIVE
+      }
+    }
+  },
+  solidity: '0.8.7',
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false
+  }
+
 }

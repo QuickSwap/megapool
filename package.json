@@ -26,6 +26,10 @@
     "hardhat": "^2.4.1",
     "prettier": "^2.3.2",
     "prettier-plugin-solidity": "^1.0.0-beta.13",
-    "standard": "^16.0.3"
+    "standard": "^16.0.3",
+    "@ethersproject/hardware-wallets": "https://github.com/mudgen/ethers-ledger.git"
+  },
+  "dependencies": {
+    "hardhat-contract-sizer": "^2.0.3"
   }
 }

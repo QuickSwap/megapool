@@ -20,7 +20,7 @@ struct RewardToken {
 struct AppStorage {
     address rewardsDistribution;
     IERC20 stakingToken;
-    address[] rewardsTokensArray;    
+    address[] rewardTokensArray;    
     
     uint256 totalSupply;
     mapping(address => uint256) balances;
@@ -36,6 +36,16 @@ contract MegaPool {
     ) {
         s.stakingToken = IERC20(_stakingToken);
         s.rewardsDistribution = _rewardsDistribution;
+    }
+
+    function rewardsDistribution() external view returns (address) {
+        return s.rewardsDistribution;
+    }
+
+    function transferRewardsDistribution(address _newRewardsDistribution) external {
+        require(s.rewardsDistribution == msg.sender, "Transfer rewards distribution not authorized");
+        emit RewardsDistributionTransferred(s.rewardsDistribution, _newRewardsDistribution);
+        s.rewardsDistribution = _newRewardsDistribution;
     }
 
     function lastTimeRewardApplicable(address _rewardToken) public view returns (uint256) {
@@ -98,9 +108,9 @@ contract MegaPool {
     }
 
     function getRewards() public {
-        uint256 length = s.rewardsTokensArray.length;
+        uint256 length = s.rewardTokensArray.length;
         for(uint256 i; i < length; i++) {
-            address rewardTokenAddress = s.rewardsTokensArray[i];
+            address rewardTokenAddress = s.rewardTokensArray[i];
             updateReward(msg.sender, rewardTokenAddress);
             RewardToken storage rewardToken = s.rewardTokens[rewardTokenAddress];
             uint256 reward = rewardToken.rewards[msg.sender];
@@ -112,15 +122,31 @@ contract MegaPool {
         }        
     }
 
+    function getSpecificRewards(address[] calldata _rewardTokensArray) external {        
+        for(uint256 i; i < _rewardTokensArray.length; i++) {
+            address rewardTokenAddress = _rewardTokensArray[i];
+            updateReward(msg.sender, rewardTokenAddress);
+            RewardToken storage rewardToken = s.rewardTokens[rewardTokenAddress];
+            uint256 index = rewardToken.index;
+            require(s.rewardTokensArray[index] == rewardTokenAddress, "Reward token address does not exist");
+            uint256 reward = rewardToken.rewards[msg.sender];
+            if (reward > 0) {
+                rewardToken.rewards[msg.sender] = 0;
+                emit RewardPaid(rewardTokenAddress, msg.sender, reward);
+                SafeERC20.safeTransfer(IERC20(rewardTokenAddress), msg.sender, reward);                                
+            }                
+        }
+    }
+
     function exit() external {
         withdraw(s.balances[msg.sender]);
         getRewards();
     }
 
     function updateRewardAll(address _account) internal {
-        uint256 length = s.rewardsTokensArray.length;
+        uint256 length = s.rewardTokensArray.length;
         for(uint256 i; i < length; i++) {
-            updateReward(_account, s.rewardsTokensArray[i]);
+            updateReward(_account, s.rewardTokensArray[i]);
         }
     }
 
@@ -142,7 +168,7 @@ contract MegaPool {
     }
 
     function notifyRewardAmount(RewardTokenArgs[] calldata _args) external {
-        require(msg.sender == s.rewardsDistribution, "Caller is not RewardsDistribution contract");
+        require(msg.sender == s.rewardsDistribution, "Caller is not RewardsDistribution");
         for(uint256 i; i < _args.length; i++) {
             RewardTokenArgs calldata args = _args[i];
             RewardToken storage rewardToken = s.rewardTokens[args.rewardToken];
@@ -161,8 +187,8 @@ contract MegaPool {
             uint256 periodFinish = block.timestamp +  args.rewardDuration;
             rewardToken.periodFinish = periodFinish;
             if(rewardToken.index == 0) {
-                s.rewardsTokensArray.push(args.rewardToken);
-                rewardToken.index = s.rewardsTokensArray.length;
+                rewardToken.index = s.rewardTokensArray.length;
+                s.rewardTokensArray.push(args.rewardToken);                
             }
             emit RewardAdded(args.rewardToken, args.reward, periodFinish);
 
@@ -175,31 +201,11 @@ contract MegaPool {
         }     
     }
 
-    /* ========== MODIFIERS ========== */
-
-    // modifier updateReward(address account) {
-    //     s.rewardPerTokenStored = rewardPerToken();
-    //     s.lastUpdateTime = lastTimeRewardApplicable();
-    //     if (account != address(0)) {
-    //         rewards[account] = earned(account);
-    //         userRewardPerTokenPaid[account] = rewardPerTokenStored;
-    //     }
-    //     _;
-    // }
-
-    // function stake(uint256 amount) external {        
-    //     require(amount > 0, "Cannot stake 0");
-    //     updateReward(msg.sender);
-    //     s.totalSupply = _totalSupply.add(amount);
-    //     s.balances[msg.sender] = _balances[msg.sender].add(amount);
-    //     s.stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-    //     emit Staked(msg.sender, amount);
-    // }
-
     event RewardAdded(address indexed rewardToken, uint256 reward, uint256 periodFinish);
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed rewardToken, address indexed user, uint256 reward);
+    event RewardsDistributionTransferred(address indexed oldRewardsDistribution, address indexed newRewardsDistribution);
 
 
 }
