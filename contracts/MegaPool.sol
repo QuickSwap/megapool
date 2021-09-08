@@ -66,8 +66,8 @@ contract MegaPool {
 
     struct RewardTokenInfo {
         uint256 index; // index in rewardsTokensArray
-        uint256 periodFinish;
-        uint256 rewardRate;
+        uint256 periodFinish; // rewards end at this time in seconds
+        uint256 rewardRate; // how many reward tokens per second
         uint256 rewardPerTokenStored;
         uint256 lastUpdateTime;
     }
@@ -86,23 +86,35 @@ contract MegaPool {
         userRewardPerTokenPaid_ = s.rewardTokens[_rewardToken].userRewardPerTokenPaid[_account];
     }
 
-    function userRewardPerTokenPaid(address _account) external view returns(uint256[] memory userRewardPerTokenPaid_) {
-        userRewardPerTokenPaid_ = new uint256[](s.rewardTokensArray.length);
+    struct UserRewardPerTokenPaid {
+        address rewardToken;
+        uint256 userRewardPerTokenPaid;
+    }
+
+    function userRewardPerTokenPaid(address _account) external view returns(UserRewardPerTokenPaid[] memory userRewardPerTokenPaid_) {
+        userRewardPerTokenPaid_ = new UserRewardPerTokenPaid[](s.rewardTokensArray.length);
         for(uint256 i; i < userRewardPerTokenPaid_.length; i++) {
             address rewardTokenAddress = s.rewardTokensArray[i];
-            userRewardPerTokenPaid_[i] = s.rewardTokens[rewardTokenAddress].userRewardPerTokenPaid[_account];
+            userRewardPerTokenPaid_[i].rewardToken = rewardTokenAddress;
+            userRewardPerTokenPaid_[i].userRewardPerTokenPaid = s.rewardTokens[rewardTokenAddress].userRewardPerTokenPaid[_account];
         }
     }
 
-    function rewards(address _rewardToken, address _account) external view returns(uint256 rewards_) {
-        rewards_ = s.rewardTokens[_rewardToken].rewards[_account];
+    function reward(address _rewardToken, address _account) external view returns(uint256 reward_) {
+        reward_ = s.rewardTokens[_rewardToken].rewards[_account];
     }
 
-    function rewards(address _account) external view returns(uint256[] memory rewards_) {
-        rewards_ = new uint256[](s.rewardTokensArray.length);
+    struct Rewards {
+        address rewardToken;
+        uint256 rewards;
+    }
+
+    function rewards(address _account) external view returns(Rewards[] memory rewards_) {
+        rewards_ = new Rewards[](s.rewardTokensArray.length);
         for(uint256 i; i < rewards_.length; i++) {
             address rewardTokenAddress = s.rewardTokensArray[i];
-            rewards_[i] = s.rewardTokens[rewardTokenAddress].userRewardPerTokenPaid[_account];
+            rewards_[i].rewardToken = rewardTokenAddress;
+            rewards_[i].rewards = s.rewardTokens[rewardTokenAddress].userRewardPerTokenPaid[_account];
         }
     }
 
@@ -113,6 +125,8 @@ contract MegaPool {
         return block.timestamp > periodFinish ? periodFinish : block.timestamp;
     }
 
+
+    // gets the amount of rew
     function rewardPerToken(address _rewardToken) public view returns (uint256) {
         RewardToken storage rewardToken = s.rewardTokens[_rewardToken];
         if (s.totalSupply == 0) {
@@ -126,12 +140,26 @@ contract MegaPool {
                 s.totalSupply;            
     }
 
-    function earned(address _account, address _rewardToken) public view returns (uint256) {
+    function earned(address _rewardToken, address _account) public view returns (uint256) {
         RewardToken storage rewardToken = s.rewardTokens[_rewardToken];
         return s.balances[_account] * 
             (rewardPerToken(_rewardToken) - rewardToken.userRewardPerTokenPaid[_account]) / 
             1e18 +
             rewardToken.rewards[_account];
+    }
+
+    struct Earned {
+        address rewardToken;
+        uint256 earned;
+    }
+
+    function earned(address _account) external view returns (Earned[] memory earned_) {
+        earned_ = new Earned[](s.rewardTokensArray.length);
+        for(uint256 i; i < earned_.length; i++) {
+            address rewardTokenAddress = s.rewardTokensArray[i];
+            earned_[i].rewardToken = rewardTokenAddress;
+            earned_[i].earned = earned(rewardTokenAddress, _account);
+        }
     }
 
     function stakeWithPermit(uint256 _amount, uint _deadline, uint8 _v, bytes32 _r, bytes32 _s) external {
@@ -172,11 +200,11 @@ contract MegaPool {
             address rewardTokenAddress = s.rewardTokensArray[i];
             updateReward(msg.sender, rewardTokenAddress);
             RewardToken storage rewardToken = s.rewardTokens[rewardTokenAddress];
-            uint256 reward = rewardToken.rewards[msg.sender];
-            if (reward > 0) {
+            uint256 l_reward = rewardToken.rewards[msg.sender];
+            if (l_reward > 0) {
                 rewardToken.rewards[msg.sender] = 0;
-                emit RewardPaid(rewardTokenAddress, msg.sender, reward);
-                SafeERC20.safeTransfer(IERC20(rewardTokenAddress), msg.sender, reward);                                
+                emit RewardPaid(rewardTokenAddress, msg.sender, l_reward);
+                SafeERC20.safeTransfer(IERC20(rewardTokenAddress), msg.sender, l_reward);                                
             }                
         }        
     }
@@ -188,11 +216,11 @@ contract MegaPool {
             RewardToken storage rewardToken = s.rewardTokens[rewardTokenAddress];
             uint256 index = rewardToken.index;
             require(s.rewardTokensArray[index] == rewardTokenAddress, "Reward token address does not exist");
-            uint256 reward = rewardToken.rewards[msg.sender];
-            if (reward > 0) {
+            uint256 l_reward = rewardToken.rewards[msg.sender];
+            if (l_reward > 0) {
                 rewardToken.rewards[msg.sender] = 0;
-                emit RewardPaid(rewardTokenAddress, msg.sender, reward);
-                SafeERC20.safeTransfer(IERC20(rewardTokenAddress), msg.sender, reward);                                
+                emit RewardPaid(rewardTokenAddress, msg.sender, l_reward);
+                SafeERC20.safeTransfer(IERC20(rewardTokenAddress), msg.sender, l_reward);                                
             }                
         }
     }
