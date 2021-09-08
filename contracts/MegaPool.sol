@@ -48,6 +48,65 @@ contract MegaPool {
         s.rewardsDistribution = _newRewardsDistribution;
     }
 
+    function totalSupply() external view returns (uint256 totalSupply_) {
+        totalSupply_ = s.totalSupply;
+    }
+
+    function stakingToken() external view returns (address) {
+        return address(s.stakingToken);
+    }
+
+    function rewardTokensArray() external view returns(address[] memory rewardTokens_){
+        return s.rewardTokensArray;
+    }
+
+    function balanceOf(address _account) external view returns (uint256) {
+       return s.balances[_account];
+    }
+
+    struct RewardTokenInfo {
+        uint256 index; // index in rewardsTokensArray
+        uint256 periodFinish;
+        uint256 rewardRate;
+        uint256 rewardPerTokenStored;
+        uint256 lastUpdateTime;
+    }
+
+    function rewardToken(address _rewardToken) external view returns(RewardTokenInfo memory) {
+        return RewardTokenInfo({
+            index: s.rewardTokens[_rewardToken].index,
+            periodFinish: s.rewardTokens[_rewardToken].periodFinish,
+            rewardRate: s.rewardTokens[_rewardToken].rewardRate,
+            rewardPerTokenStored: s.rewardTokens[_rewardToken].rewardPerTokenStored,
+            lastUpdateTime: s.rewardTokens[_rewardToken].lastUpdateTime
+        }); 
+    }
+
+    function userRewardPerTokenPaid(address _rewardToken, address _account) external view returns(uint256 userRewardPerTokenPaid_) {
+        userRewardPerTokenPaid_ = s.rewardTokens[_rewardToken].userRewardPerTokenPaid[_account];
+    }
+
+    function userRewardPerTokenPaid(address _account) external view returns(uint256[] memory userRewardPerTokenPaid_) {
+        userRewardPerTokenPaid_ = new uint256[](s.rewardTokensArray.length);
+        for(uint256 i; i < userRewardPerTokenPaid_.length; i++) {
+            address rewardTokenAddress = s.rewardTokensArray[i];
+            userRewardPerTokenPaid_[i] = s.rewardTokens[rewardTokenAddress].userRewardPerTokenPaid[_account];
+        }
+    }
+
+    function rewards(address _rewardToken, address _account) external view returns(uint256 rewards_) {
+        rewards_ = s.rewardTokens[_rewardToken].rewards[_account];
+    }
+
+    function rewards(address _account) external view returns(uint256[] memory rewards_) {
+        rewards_ = new uint256[](s.rewardTokensArray.length);
+        for(uint256 i; i < rewards_.length; i++) {
+            address rewardTokenAddress = s.rewardTokensArray[i];
+            rewards_[i] = s.rewardTokens[rewardTokenAddress].rewards[_account];
+        }
+    }
+
+
     function lastTimeRewardApplicable(address _rewardToken) public view returns (uint256) {
         uint256 periodFinish = s.rewardTokens[_rewardToken].periodFinish;
         // return smaller time
