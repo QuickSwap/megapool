@@ -72,7 +72,7 @@ contract MegaPool {
         uint256 lastUpdateTime;
     }
 
-    function rewardToken(address _rewardToken) external view returns(RewardTokenInfo memory) {
+    function rewardTokenInfo(address _rewardToken) external view returns(RewardTokenInfo memory) {
         return RewardTokenInfo({
             index: s.rewardTokens[_rewardToken].index,
             periodFinish: s.rewardTokens[_rewardToken].periodFinish,
@@ -102,7 +102,7 @@ contract MegaPool {
         rewards_ = new uint256[](s.rewardTokensArray.length);
         for(uint256 i; i < rewards_.length; i++) {
             address rewardTokenAddress = s.rewardTokensArray[i];
-            rewards_[i] = s.rewardTokens[rewardTokenAddress].rewards[_account];
+            rewards_[i] = s.rewardTokens[rewardTokenAddress].userRewardPerTokenPaid[_account];
         }
     }
 
@@ -137,14 +137,14 @@ contract MegaPool {
     function stakeWithPermit(uint256 _amount, uint _deadline, uint8 _v, bytes32 _r, bytes32 _s) external {
         require(_amount > 0, "Cannot stake 0");        
         updateRewardAll(msg.sender); 
-        IERC20 stakingToken = s.stakingToken;
+        IERC20 l_stakingToken = s.stakingToken;
         s.totalSupply += _amount;
         s.balances[msg.sender] += _amount;
         emit Staked(msg.sender, _amount);
         // permit
-        IERC20Permit(address(stakingToken)).permit(msg.sender, address(this), _amount, _deadline, _v, _r, _s);
+        IERC20Permit(address(l_stakingToken)).permit(msg.sender, address(this), _amount, _deadline, _v, _r, _s);
 
-        SafeERC20.safeTransferFrom(stakingToken, msg.sender, address(this), _amount);
+        SafeERC20.safeTransferFrom(l_stakingToken, msg.sender, address(this), _amount);
         
     }
 
