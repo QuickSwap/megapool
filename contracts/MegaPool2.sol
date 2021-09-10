@@ -27,7 +27,7 @@ struct AppStorage {
     mapping(address => RewardToken) rewardTokens;
 }
 
-contract MegaPool {
+contract MegaPool2 {
     AppStorage s;
 
     constructor(
@@ -82,6 +82,43 @@ contract MegaPool {
         }); 
     }
 
+    function userRewardPerTokenPaid(address _rewardToken, address _account) external view returns(uint256 userRewardPerTokenPaid_) {
+        userRewardPerTokenPaid_ = s.rewardTokens[_rewardToken].userRewardPerTokenPaid[_account];
+    }
+
+    struct UserRewardPerTokenPaid {
+        address rewardToken;
+        uint256 userRewardPerTokenPaid;
+    }
+
+    function userRewardPerTokenPaid(address _account) external view returns(UserRewardPerTokenPaid[] memory userRewardPerTokenPaid_) {
+        userRewardPerTokenPaid_ = new UserRewardPerTokenPaid[](s.rewardTokensArray.length);
+        for(uint256 i; i < userRewardPerTokenPaid_.length; i++) {
+            address rewardTokenAddress = s.rewardTokensArray[i];
+            userRewardPerTokenPaid_[i].rewardToken = rewardTokenAddress;
+            userRewardPerTokenPaid_[i].userRewardPerTokenPaid = s.rewardTokens[rewardTokenAddress].userRewardPerTokenPaid[_account];
+        }
+    }
+
+    function reward(address _rewardToken, address _account) external view returns(uint256 reward_) {
+        reward_ = s.rewardTokens[_rewardToken].rewards[_account];
+    }
+
+    struct Rewards {
+        address rewardToken;
+        uint256 rewards;
+    }
+
+    function rewards(address _account) external view returns(Rewards[] memory rewards_) {
+        rewards_ = new Rewards[](s.rewardTokensArray.length);
+        for(uint256 i; i < rewards_.length; i++) {
+            address rewardTokenAddress = s.rewardTokensArray[i];
+            rewards_[i].rewardToken = rewardTokenAddress;
+            rewards_[i].rewards = s.rewardTokens[rewardTokenAddress].rewards[_account];
+        }
+    }
+
+
     function lastTimeRewardApplicable(address _rewardToken) public view returns (uint256) {
         uint256 periodFinish = s.rewardTokens[_rewardToken].periodFinish;
         // return smaller time
@@ -92,17 +129,15 @@ contract MegaPool {
     // gets the amount of rew
     function rewardPerToken(address _rewardToken) public view returns (uint256) {
         RewardToken storage rewardToken = s.rewardTokens[_rewardToken];
-        uint256 l_totalSupply = s.totalSupply;
-        uint256 lastUpdateTime = rewardToken.lastUpdateTime;
-        if (lastUpdateTime == 0 || l_totalSupply == 0) {
+        if (rewardToken.lastUpdateTime == 0) {
             return rewardToken.rewardPerTokenStored;
         }
         return
             rewardToken.rewardPerTokenStored +
-                (lastTimeRewardApplicable(_rewardToken) - lastUpdateTime) * 
+                (lastTimeRewardApplicable(_rewardToken) - rewardToken.lastUpdateTime) * 
                 rewardToken.rewardRate * 
                 1e18 / 
-                l_totalSupply;            
+                s.totalSupply;            
     }
 
     function earned(address _rewardToken, address _account) public view returns (uint256) {
@@ -234,14 +269,15 @@ contract MegaPool {
                 uint256 leftover = remaining * rewardToken.rewardRate;
                 rewardRate = (args.reward + leftover) / args.rewardDuration;                
             }
+            if(rewardToken.index == 0 && rewardToken.periodFinish == 0) {
+                rewardToken.index = s.rewardTokensArray.length;
+                s.rewardTokensArray.push(args.rewardToken);                
+            }
             rewardToken.rewardRate = rewardRate;            
             rewardToken.lastUpdateTime = block.timestamp;
             uint256 periodFinish = block.timestamp +  args.rewardDuration;
             rewardToken.periodFinish = periodFinish;
-            if(rewardToken.index == 0) {
-                rewardToken.index = s.rewardTokensArray.length;
-                s.rewardTokensArray.push(args.rewardToken);                
-            }
+            
             emit RewardAdded(args.rewardToken, args.reward, periodFinish);
 
             // Ensure the provided reward amount is not more than the balance in the contract.

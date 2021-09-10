@@ -2,9 +2,10 @@
 /* eslint-disable  prefer-const */
 const { LedgerSigner } = require('@ethersproject/hardware-wallets')
 
-async function main (signer) {
-
-
+async function main (signer, megaPool, rewards) {
+  if (megaPool === undefined) {
+    // pass
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
