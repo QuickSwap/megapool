@@ -2,6 +2,8 @@
 /* global ethers task */
 require('@nomiclabs/hardhat-waffle')
 require('hardhat-contract-sizer')
+require('hardhat-gas-reporter')
+
 require('dotenv').config()
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -28,11 +30,22 @@ module.exports = {
       }
     }
   },
-  solidity: '0.8.7',
+  solidity: {
+    version: '0.8.7',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
   contractSizer: {
     alphaSort: true,
     runOnCompile: true,
     disambiguatePaths: false
+  },
+  gasReporter: {
+    enabled: true
   }
 
 }
