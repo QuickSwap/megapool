@@ -246,9 +246,7 @@ contract MegaPool {
             RewardTokenArgs calldata args = _args[i];
             RewardToken storage rewardToken = s.rewardTokens[args.rewardToken];
             uint256 oldPeriodFinish = rewardToken.periodFinish;
-            require(block.timestamp + args.rewardDuration >= oldPeriodFinish, "Cannot reduce existing period");            
-            (uint256 l_rewardPerToken,) = rewardPerToken(args.rewardToken);
-            rewardToken.rewardPerTokenStored = uint128(l_rewardPerToken);            
+            require(block.timestamp + args.rewardDuration >= oldPeriodFinish, "Cannot reduce existing period");                        
             uint256 rewardRate;
             if (block.timestamp >= oldPeriodFinish) {
                 require(args.reward <= type(uint128).max, "Reward is too large");
@@ -260,11 +258,13 @@ contract MegaPool {
                 require(reward <= type(uint128).max, "Reward is too large");
                 rewardRate = reward / args.rewardDuration;                
             }
+            (uint256 l_rewardPerToken,) = rewardPerToken(args.rewardToken);
+            rewardToken.rewardPerTokenStored = uint128(l_rewardPerToken);
             uint256 periodFinish = block.timestamp + args.rewardDuration;            
             if(oldPeriodFinish == 0) {
                 rewardToken.index = uint16(s.rewardTokensArray.length);
                 s.rewardTokensArray.push(args.rewardToken);                
-            }
+            }            
             rewardToken.periodFinish = uint32(periodFinish);                       
             rewardToken.lastUpdateTime = uint32(block.timestamp);            
             rewardToken.rewardRate = uint128(rewardRate); 
