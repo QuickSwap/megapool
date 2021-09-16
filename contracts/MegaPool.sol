@@ -16,8 +16,8 @@ struct RewardToken {
     uint16 index; // index in rewardsTokensArray
     uint32 periodFinish;
     uint32 lastUpdateTime;
-    uint128 rewardRate;
-    uint128 rewardPerTokenStored;        
+    uint128 rewardPerTokenStored;
+    uint128 rewardRate;    
     mapping(address => Rewards) rewards;
 }
 
@@ -117,7 +117,7 @@ contract MegaPool {
     }
 
     function internalEarned(uint256 _rewardPerToken, address _rewardToken, address _account) internal view returns (uint256) {
-        RewardToken storage rewardToken = s.rewardTokens[_rewardToken];
+        RewardToken storage rewardToken = s.rewardTokens[_rewardToken];        
         return s.balances[_account] * 
             (_rewardPerToken - rewardToken.rewards[_account].userRewardPerTokenPaid) / 
             1e18 +
@@ -167,38 +167,46 @@ contract MegaPool {
 
     function getRewards() public {
         uint256 length = s.rewardTokensArray.length;
-        for(uint256 i; i < length; i++) {
+        for(uint256 i; i < length;) {
             address rewardTokenAddress = s.rewardTokensArray[i];
-            uint256 rewardToPay = updateReward(msg.sender, rewardTokenAddress); 
+            uint256 rewardToPay = updateReward(rewardTokenAddress, msg.sender); 
             RewardToken storage rewardToken = s.rewardTokens[rewardTokenAddress];            
             if (rewardToPay > 0) {
                 rewardToken.rewards[msg.sender].rewardToPay = 0;
                 emit RewardPaid(rewardTokenAddress, msg.sender, rewardToPay);
                 SafeERC20.safeTransfer(IERC20(rewardTokenAddress), msg.sender, rewardToPay);
-            }                
+            }
+            unchecked {
+                i++;
+            }        
         }        
     }
 
     function getSpecificRewards(address[] calldata _rewardTokensArray) external {        
-        for(uint256 i; i < _rewardTokensArray.length; i++) {
+        for(uint256 i; i < _rewardTokensArray.length;) {
             address rewardTokenAddress = _rewardTokensArray[i];            
             RewardToken storage rewardToken = s.rewardTokens[rewardTokenAddress];
             uint256 index = rewardToken.index;
             require(s.rewardTokensArray[index] == rewardTokenAddress, "Reward token address does not exist");
-            uint256 rewardToPay = updateReward(msg.sender, rewardTokenAddress); 
+            uint256 rewardToPay = updateReward(rewardTokenAddress, msg.sender); 
             if (rewardToPay > 0) {
                 rewardToken.rewards[msg.sender].rewardToPay = 0;
                 emit RewardPaid(rewardTokenAddress, msg.sender, rewardToPay);
                 SafeERC20.safeTransfer(IERC20(rewardTokenAddress), msg.sender, rewardToPay);                                
-            }                
+            }
+            unchecked {
+                i++;
+            }
         }
     }
 
     function withdraw(uint256 _amount) public {
         require(_amount > 0, "Cannot withdraw 0");        
-        updateRewardAll(msg.sender);
+        uint256 balance = s.balances[msg.sender];
+        require(_amount <= balance, "Can't withdraw more than staked");
+        updateRewardAll(msg.sender);        
         s.totalSupply -= _amount;
-        s.balances[msg.sender] -= _amount;
+        s.balances[msg.sender] = balance - _amount;
         emit Withdrawn(msg.sender, _amount);
         SafeERC20.safeTransfer(s.stakingToken, msg.sender, _amount);
     }
@@ -218,18 +226,21 @@ contract MegaPool {
 
     function updateRewardAll(address _account) internal {
         uint256 length = s.rewardTokensArray.length;
-        for(uint256 i; i < length; i++) {
+        for(uint256 i; i < length;) {
             address rewardTokenAddress = s.rewardTokensArray[i];
-            updateReward(_account, rewardTokenAddress);
+            updateReward(rewardTokenAddress, _account);
+            unchecked {
+                i++;
+            }
         }
     }
 
-    function updateReward(address _account, address _rewardToken) internal returns (uint256 rewardToPay_) {
+    function updateReward(address _rewardToken, address _account) internal returns (uint256 rewardToPay_) {
         RewardToken storage rewardToken = s.rewardTokens[_rewardToken];
         (uint256 l_rewardPerToken, uint256 lastUpdateTime) = rewardPerToken(_rewardToken);
         rewardToken.rewardPerTokenStored = uint128(l_rewardPerToken);
         rewardToken.lastUpdateTime = uint32(lastUpdateTime);
-        rewardToPay_ = internalEarned(l_rewardPerToken, _account, _rewardToken);
+        rewardToPay_ = internalEarned(l_rewardPerToken, _rewardToken, _account);        
         rewardToken.rewards[_account].rewardToPay = uint128(rewardToPay_);
         rewardToken.rewards[_account].userRewardPerTokenPaid = uint128(l_rewardPerToken);
     }

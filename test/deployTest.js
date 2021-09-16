@@ -12,6 +12,12 @@ describe('Deploying and testing MegaPool', async function () {
   let tx
   let receipt
   let token
+  const quick = '0x831753dd7087cac61ab5644b308642cc1c33dc13'
+  let quickContract
+  const dquick = '0xf28164a485b0b2c90639e47b0f377b4a438a16b1'
+  const childChainManager = '0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa'
+  let dragonLair
+  let dQuickAmount
   // const maskNetworkAddress = '0x2b9e7ccdf0f4e5b24757c1e1a80e311e34cb10c7'
 
   const tokens = {
@@ -40,9 +46,8 @@ describe('Deploying and testing MegaPool', async function () {
 
   before(async function () {
     // signer = new LedgerSigner(ethers.provider)
-    signer = (await ethers.getSigners())[0]
-    megaPool = await deployProject(signer)
-    const childChainManager = '0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa'
+    // signer = (await ethers.getSigners())[0]
+    // megaPool = await deployProject(signer)
     await hre.network.provider.request({
       method: 'hardhat_impersonateAccount',
       params: [childChainManager]
@@ -51,11 +56,13 @@ describe('Deploying and testing MegaPool', async function () {
       childChainManager,
       '0x9000000000000000000000000000'
     ])
-
     const tokenSigner = await ethers.getSigner(childChainManager)
+    megaPool = await deployProject(tokenSigner)
+
+    dragonLair = await ethers.getContractAt('IDragonLair', dquick, tokenSigner)
 
     for (const [name, address] of Object.entries(tokens)) {
-      console.log('Getting contract:', name)
+      console.log('Minting tokens for user:', name)
       token = await ethers.getContractAt('IDepositor', address, tokenSigner)
       tokens[name] = token
       const bytes = ethers.utils.defaultAbiCoder.encode(['uint'], [ethers.utils.parseEther('100')])
@@ -67,7 +74,48 @@ describe('Deploying and testing MegaPool', async function () {
     }
     // console.log(tokens)
 
-    console.log('Minted 100 tokens')
+    console.log('Minted 100 tokens for each token')
+
+    console.log('Mint QUICK for user')
+    token = await ethers.getContractAt('IDepositor', quick, tokenSigner)
+    const bytes = ethers.utils.defaultAbiCoder.encode(['uint'], [ethers.utils.parseEther('100')])
+    tx = await token.deposit(childChainManager, bytes)
+    receipt = await tx.wait()
+    if (!receipt.status) {
+      throw Error(`Transaction failed: ${tx.hash}`)
+    } else {
+      console.log('Quick minted')
+    }
+
+    console.log('Approve Quick in Dragon Lair')
+
+    quickContract = await ethers.getContractAt('IERC20', quick, tokenSigner)
+    tx = await quickContract.approve(dquick, ethers.utils.parseEther('100'))
+    receipt = await tx.wait()
+    if (!receipt.status) {
+      throw Error(`Transaction failed: ${tx.hash}`)
+    } else {
+      console.log('Quick approved for transfer by Dragon Lair')
+    }
+
+    console.log('Get dQuick')
+    tx = await dragonLair.enter(ethers.utils.parseEther('100'))
+    receipt = await tx.wait()
+    if (!receipt.status) {
+      throw Error(`Transaction failed: ${tx.hash}`)
+    } else {
+      console.log('Got dQuick')
+    }
+
+    console.log('Allow MegaPool to transfer dQuick')
+    tx = await dragonLair.approve(megaPool.address, ethers.utils.parseEther('100'))
+    receipt = await tx.wait()
+    if (!receipt.status) {
+      throw Error(`Transaction failed: ${tx.hash}`)
+    } else {
+      console.log('Allowed')
+    }
+    await hre.network.provider.send('evm_increaseTime', [60 * 60])
   })
 
   it('Should notify rewards', async function () {
@@ -83,7 +131,69 @@ describe('Deploying and testing MegaPool', async function () {
     if (!receipt.status) {
       throw Error(`Transaction failed: ${tx.hash}`)
     }
-    console.log('complete')
+    await hre.network.provider.send('evm_increaseTime', [60 * 5])
+    await ethers.provider.send('evm_mine')
+    // console.log('complete')
+    // await global.ghstTokenContract.mint()
+    // const balance = await global.ghstTokenContract.balanceOf(global.account)
+    // const oneMillion = ethers.utils.parseEther('10000000')
+    // expect(balance).to.equal(oneMillion)
+  })
+
+  it('Stake dQuick in MegaPool', async function () {
+    dQuickAmount = await dragonLair.balanceOf(childChainManager)
+    console.log('Staking', ethers.utils.formatEther(dQuickAmount), 'dQuick')
+    // console.log(ethers.utils.formatEther(dQuickAmount))
+    tx = await megaPool.stake(dQuickAmount)
+    receipt = await tx.wait()
+    if (!receipt.status) {
+      throw Error(`Transaction failed: ${tx.hash}`)
+    }
+
+    // let earned = await megaPool['earned(address)'](childChainManager)
+    // console.log(earned[0])
+
+    await hre.network.provider.send('evm_increaseTime', [60 * 60 * 24])
+    await ethers.provider.send('evm_mine')
+
+    const earned = await megaPool['earned(address)'](childChainManager)
+    console.log(ethers.utils.formatEther(earned[0].earned))
+
+    // await hre.network.provider.send('evm_increaseTime', [60 * 60 * 24])
+    // await ethers.provider.send('evm_mine')
+
+    // await global.ghstTokenContract.mint()
+    // const balance = await global.ghstTokenContract.balanceOf(global.account)
+    // const oneMillion = ethers.utils.parseEther('10000000')
+    // expect(balance).to.equal(oneMillion)
+  })
+
+  it('Exit dQuick Stake in MegaPool', async function () {
+    let currentDquick = await dragonLair.balanceOf(childChainManager)
+    expect(currentDquick).to.equal(0)
+
+    // let earned = await megaPool['earned(address)'](childChainManager)
+    // console.log(earned[0])
+
+    // tx = await megaPool.exit()
+    tx = await megaPool.withdrawAll()
+    receipt = await tx.wait()
+    if (!receipt.status) {
+      throw Error(`Transaction failed: ${tx.hash}`)
+    }
+    currentDquick = await dragonLair.balanceOf(childChainManager)
+    expect(currentDquick).to.equal(dQuickAmount)
+
+    // await hre.network.provider.send('evm_increaseTime', [60 * 60 * 24])
+
+    let earned = await megaPool['earned(address)'](childChainManager)
+    console.log(ethers.utils.formatEther(earned[0].earned))
+
+    await ethers.provider.send('evm_mine')
+
+    earned = await megaPool['earned(address)'](childChainManager)
+    console.log(ethers.utils.formatEther(earned[0].earned))
+
     // await global.ghstTokenContract.mint()
     // const balance = await global.ghstTokenContract.balanceOf(global.account)
     // const oneMillion = ethers.utils.parseEther('10000000')
