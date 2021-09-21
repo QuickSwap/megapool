@@ -23,14 +23,15 @@
     "chai": "^4.3.4",
     "dotenv": "^8.6.0",
     "ethereum-waffle": "^3.4.0",
-    "ethers": "^5.4.1",
-    "hardhat": "^2.4.1",
+    "ethers": "^5.4.7",
+    "hardhat": "^2.6.4",
     "hardhat-gas-reporter": "^1.0.4",
-    "prettier": "^2.3.2",
-    "prettier-plugin-solidity": "^1.0.0-beta.13",
+    "prettier": "^2.4.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.18",
     "standard": "^16.0.3"
   },
   "dependencies": {
-    "hardhat-contract-sizer": "^2.0.3"
+    "ethers-ledger": "git+https://github.com/mudgen/ethers-ledger.git",
+    "hardhat-contract-sizer": "^2.1.1"
   }
 }

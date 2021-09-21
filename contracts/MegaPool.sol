@@ -253,6 +253,7 @@ contract MegaPool {
 
     function notifyRewardAmount(RewardTokenArgs[] calldata _args) external {
         require(msg.sender == s.rewardsDistribution, "Caller is not RewardsDistribution");
+        require(s.rewardTokensArray.length + _args.length <= 200, "Too many reward tokens");
         for(uint256 i; i < _args.length;) {
             RewardTokenArgs calldata args = _args[i];
             RewardToken storage rewardToken = s.rewardTokens[args.rewardToken];
@@ -290,7 +291,7 @@ contract MegaPool {
             unchecked {
                 i++;
             }  
-        }     
+        }          
     }
 
     event RewardAdded(address indexed rewardToken, uint256 reward, uint256 periodFinish);
