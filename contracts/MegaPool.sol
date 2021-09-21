@@ -8,16 +8,16 @@ import {SafeERC20} from "./libraries/SafeERC20.sol";
 import {IERC20Permit} from "./interfaces/IERC20Permit.sol";
 
 struct Rewards {
-    uint128 userRewardPerTokenPaid;
-    uint128 rewardToPay;
+    uint128 userRewardPerTokenPaid; // reward per token already paid
+    uint128 rewardToPay; // stored amount of reward torken to pay
 }
 
 struct RewardToken {
     uint16 index; // index in rewardsTokensArray
-    uint32 periodFinish;
-    uint32 lastUpdateTime;
-    uint128 rewardPerTokenStored;
-    uint128 rewardRate;    
+    uint32 periodFinish;  // time in seconds rewards will end
+    uint32 lastUpdateTime; // last time reward info was updated
+    uint128 rewardPerTokenStored; // reward per token
+    uint128 rewardRate; // how many reward tokens to give out per second
     mapping(address => Rewards) rewards;
 }
 
