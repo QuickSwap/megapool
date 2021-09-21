@@ -1,2 +1,2 @@
-# contracts-starter
-Template for starting smart contract repos
+# megapool contract
+Staking a single token for multiple reward tokens.
