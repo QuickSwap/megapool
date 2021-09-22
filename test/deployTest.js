@@ -133,6 +133,19 @@ describe('Deploying and testing MegaPool', async function () {
   })
 
   it('Should notify rewards', async function () {
+    const args2 = [
+      {
+        rewardToken: '0x300211def2a644b036a9bdd3e58159bb2074d388', // token address
+        reward: ethers.utils.parseEther('1000'), // total amount of rewards
+        rewardDuration: (60 * 60 * 24) * 60 // distributed over 60 days
+      },
+      {
+        rewardToken: '0x598e49f01befeb1753737934a5b11fea9119c796', // token address
+        reward: ethers.utils.parseEther('9000'), // total amount of rewards
+        rewardDuration: (60 * 60 * 24) * 60 // distributed over 300 days
+      }
+    ]
+
     const args = Object.values(tokens).map(v => {
       return {
         rewardToken: v.address,

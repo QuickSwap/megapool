@@ -111,6 +111,7 @@ contract MegaPool {
         }                    
     }
 
+    // earned an not yet paid
     function earned(address _rewardToken, address _account) external view returns (uint256) {
         (uint256 l_rewardPerToken,) = rewardPerToken(_rewardToken);
         return internalEarned(l_rewardPerToken, _rewardToken, _account);         
@@ -246,9 +247,9 @@ contract MegaPool {
     }
 
     struct RewardTokenArgs {
-        address rewardToken;
-        uint256 reward;
-        uint256 rewardDuration;
+        address rewardToken; // ERC20 address
+        uint256 reward; // total reward amount
+        uint256 rewardDuration; // how many seconds rewards are distributed
     }
 
     function notifyRewardAmount(RewardTokenArgs[] calldata _args) external {
