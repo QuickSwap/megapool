@@ -93,7 +93,7 @@ It is also possible to call `notifyRewardAmount` to start distributing rewards f
 * `withdraw(uint256 _amount)` withdraws a specific amount of staked tokens without paying any rewards.
 * `withdrawAll()` withdraws all staked tokens without paying any rewards.
 * `exit()` pays all rewards and withdraws all staked tokens.
-* 
+  
 
 
 
