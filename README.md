@@ -17,9 +17,9 @@ constructor(
 )
 ```
 
-The `_rewardsDistribution` is the address that has the permission to call the `notifyRewardAmount` function which is used to start the distribution of rewards.
+The `_rewardsDistribution` parameter is the address that has the permission to call the `notifyRewardAmount` function which is used to start the distribution of rewards.
 
-the `_stakingToken` is the address of the ERC20 token that must be staked to earn rewards. For example the dQUICK address.
+The `_stakingToken` parameter is the address of the ERC20 token that must be staked to earn rewards. For example the dQUICK address.
 
 # Adding and Starting Rewards
 
@@ -72,7 +72,7 @@ Note that before the `notifyRewardAmount` function can be called the total rewar
 
 The `notifyRewardAmount` function can be called more than once for the same tokens. It can be called multiple times for the same tokens in order to extend the reward duration and/or add more rewards. It can also be called to distribute new rewards for a token that has already had rewards distributed. So token rewards can be extended, renewed or restarted. A reward period cannot be shortened and the amount of rewards cannot be lessened. In short things can be more, but not less.
 
-It is also possible to call `notifyRewardAmount` to start distributing rewards for a set of tokens.  Then later call `notifyRewardAmount` again to add new reward tokens to distribute.
+It is also possible to call `notifyRewardAmount` to start distributing rewards for a set of tokens.  Then later call `notifyRewardAmount` again to add new reward tokens to distribute. So different reward tokens can be added over time.
 
 
 # Summary of other functions
