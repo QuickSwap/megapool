@@ -72,6 +72,8 @@ Note that before the `notifyRewardAmount` function can be called the total rewar
 
 The `notifyRewardAmount` function can be called more than once for the same tokens. It can be called multiple times for the same tokens in order to extend the reward duration and/or add more rewards. It can also be called to distribute new rewards for a token that has already had rewards distributed. So token rewards can be extended, renewed or restarted. A reward period cannot be shortened and the amount of rewards cannot be lessened. In short things can be more, but not less.
 
+It is also possible to call `notifyRewardAmount` to start distributing rewards for a set of tokens.  Then later call `notifyRewardAmount` again to add new reward tokens to distribute.
+
 
 # Summary of other functions
 
